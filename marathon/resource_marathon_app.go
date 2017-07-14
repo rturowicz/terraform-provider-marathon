@@ -1100,23 +1100,21 @@ func mutateResourceToApplication(d *schema.ResourceData) *marathon.Application {
 
 	application.Ports = getPorts(d)
 
-	upgradeStrategy := &marathon.UpgradeStrategy{}
+	upgradeStrategy := marathon.UpgradeStrategy{}
 
-	if v, ok := d.GetOk("upgrade_strategy.0.minimum_health_capacity"); ok {
-		f, ok := v.(*float64)
-		if ok {
-			upgradeStrategy.MinimumHealthCapacity = f
-		}
+	vh := d.Get("upgrade_strategy.0.minimum_health_capacity")
+	hc, ok := vh.(float64)
+	if ok {
+		upgradeStrategy.MinimumHealthCapacity = &hc
 	}
 
-	if v, ok := d.GetOk("upgrade_strategy.0.maximum_over_capacity"); ok {
-		f, ok := v.(*float64)
-		if ok {
-			upgradeStrategy.MaximumOverCapacity = f
-		}
+	vs := d.Get("upgrade_strategy.0.maximum_over_capacity")
+	hs, ok := vs.(float64)
+	if ok {
+		upgradeStrategy.MaximumOverCapacity = &hs
 	}
 
-	application.UpgradeStrategy = upgradeStrategy
+	application.SetUpgradeStrategy(upgradeStrategy)
 
 	if v, ok := d.GetOk("uris.#"); ok {
 		uris := make([]string, v.(int))
