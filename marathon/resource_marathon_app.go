@@ -218,6 +218,36 @@ func resourceMarathonApp() *schema.Resource {
 													Type:     schema.TypeString,
 													Optional: true,
 												},
+												"external": &schema.Schema{
+													Type:     schema.TypeList,
+													Optional: true,
+													ForceNew: false,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"name": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"provider": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"options": &schema.Schema{
+																Type:     schema.TypeList,
+																Optional: true,
+																ForceNew: false,
+																Elem: &schema.Resource{
+																	Schema: map[string]*schema.Schema{
+																		"dvdi_driver": &schema.Schema{
+																			Type:     schema.TypeString,
+																			Optional: true,
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
 											},
 										},
 									},
@@ -614,6 +644,17 @@ func setSchemaFieldsForApp(app *marathon.Application, d *schema.ResourceData) {
 				volumeMap["container_path"] = volume.ContainerPath
 				volumeMap["host_path"] = volume.HostPath
 				volumeMap["mode"] = volume.Mode
+				if volume.External != nil {
+					volumeExternalMap := make(map[string]interface{})
+					volumeExternalMap["name"] = volume.External.Name
+					volumeExternalMap["provider"] = volume.External.Provider
+					if volume.External.Options != nil {
+						volumeExternalOptionsMap := make(map[string]interface{})
+						volumeExternalOptionsMap["dvdi_driver"] = (*volume.External.Options)["dvdi/driver"]
+						volumeExternalMap["options"] = volumeExternalOptionsMap
+					}
+					volumeMap["external"]  = volumeExternalMap
+				}
 				volumes[idx] = volumeMap
 			}
 			containerMap["volumes"] = []interface{}{map[string]interface{}{"volume": volumes}}
@@ -935,6 +976,16 @@ func mutateResourceToApplication(d *schema.ResourceData) *marathon.Application {
 				}
 				if val, ok := volumeMap["mode"]; ok {
 					volumes[i].Mode = val.(string)
+				}
+				if v, ok := d.GetOk("container.0.volumes.0.volume.0.external.0"); ok {
+					externalMap := v.(map[string]interface{})
+					volumes[i].SetExternalVolume(externalMap["name"].(string), externalMap["provider"].(string))
+					if v, ok := d.GetOk("container.0.volumes.0.volume.0.external.0.options.0"); ok {
+						optionsMap := v.(map[string]interface{})
+						if val, ok := optionsMap["dvdi_driver"]; ok {
+							volumes[i].External.AddOption("dvdi/driver", val.(string))
+						}
+					}
 				}
 			}
 			container.Volumes = &volumes
