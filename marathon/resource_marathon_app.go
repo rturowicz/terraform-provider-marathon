@@ -400,14 +400,6 @@ func resourceMarathonApp() *schema.Resource {
 					},
 				},
 			},
-			"uris": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: false,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
 			"version": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -712,9 +704,6 @@ func setSchemaFieldsForApp(app *marathon.Application, d *schema.ResourceData) {
 		d.Set("upgrade_strategy", nil)
 	}
 	d.SetPartial("upgrade_strategy")
-
-	d.Set("uris", app.Uris)
-	d.SetPartial("uris")
 
 	// App
 	d.Set("executor", app.Executor)
@@ -1115,18 +1104,6 @@ func mutateResourceToApplication(d *schema.ResourceData) *marathon.Application {
 	}
 
 	application.SetUpgradeStrategy(upgradeStrategy)
-
-	if v, ok := d.GetOk("uris.#"); ok {
-		uris := make([]string, v.(int))
-
-		for i := range uris {
-			uris[i] = d.Get("uris." + strconv.Itoa(i)).(string)
-		}
-
-		if len(uris) != 0 {
-			application.Uris = &uris
-		}
-	}
 
 	return application
 }
